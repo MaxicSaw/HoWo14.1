@@ -123,3 +123,33 @@ def test_category_len():
         new_product = Product(f"Тест{i}", "Тест", 100 + i, i)
         cat.add_product(new_product)
         assert len(cat) == i
+
+
+def test_product_str_representation():
+    """Тест строкового представления Product"""
+    product = Product("Телефон", "Смартфон", 50000, 3)
+    assert str(product) == 'Телефон, 50000 руб. Остаток: 3 шт.\n'
+
+
+def test_category_str_representation():
+    """Тест строкового представления Category"""
+    products = [
+        Product("Товар1", "Описание", 100, 2),
+        Product("Товар2", "Описание", 200, 3)
+    ]
+    category = Category("Категория", "Описание", products)
+    assert str(category) == "Категория, количество продуктов: 5 шт."
+
+
+def test_product_addition():
+    """Тест сложения продуктов"""
+    p1 = Product("Товар1", "Описание", 100, 2)  # 100*2 = 200
+    p2 = Product("Товар2", "Описание", 200, 3)  # 200*3 = 600
+    assert p1 + p2 == 800
+
+
+def test_product_addition_with_invalid_type():
+    """Тест сложения с неправильным типом"""
+    p = Product("Товар", "Описание", 100, 1)
+    with pytest.raises(TypeError):
+        p + "не продукт"
