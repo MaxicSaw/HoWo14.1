@@ -4,7 +4,7 @@ import pytest
 
 def test_private_products_access():
     cat = Category("Тест", "Описание")
-    assert not hasattr(cat, '__products'), "Список продуктов должен быть приватным"
+    assert not hasattr(cat, "__products"), "Список продуктов должен быть приватным"
 
 
 def test_add_product_method():
@@ -15,7 +15,7 @@ def test_add_product_method():
     cat.add_product(product)
 
     assert Category.product_count == initial_count + 1
-    assert len(cat.products.split('\n')) == 2  # 1 товар + пустая строка
+    assert len(cat.products.split("\n")) == 2  # 1 товар + пустая строка
 
 
 def test_products_getter_format():
@@ -27,12 +27,7 @@ def test_products_getter_format():
 
 
 def test_new_product_classmethod():
-    product = Product.new_product({
-        'name': 'Ноутбук',
-        'description': 'Игровой',
-        'price': 100000,
-        'quantity': 5
-    })
+    product = Product.new_product({"name": "Ноутбук", "description": "Игровой", "price": 100000, "quantity": 5})
 
     assert isinstance(product, Product)
     assert product.name == "Ноутбук"
@@ -77,7 +72,7 @@ def test_price_reduction_confirmation(monkeypatch):
     assert product.price == 80
 
     # Тест 2: Пользователь отменяет снижение
-    monkeypatch.setattr('builtins.input', lambda _: 'n')
+    monkeypatch.setattr("builtins.input", lambda _: "n")
     product.price = 70
     assert product.price == 80  # Цена не должна измениться
 
@@ -87,7 +82,7 @@ def test_price_reduction_confirmation(monkeypatch):
     captured_output = StringIO()
     sys.stdout = captured_output
 
-    monkeypatch.setattr('builtins.input', lambda _: 'n')
+    monkeypatch.setattr("builtins.input", lambda _: "n")
     product.price = 70
     assert "Изменение цены отменено" in captured_output.getvalue()
 
@@ -128,15 +123,12 @@ def test_category_len():
 def test_product_str_representation():
     """Тест строкового представления Product"""
     product = Product("Телефон", "Смартфон", 50000, 3)
-    assert str(product) == 'Телефон, 50000 руб. Остаток: 3 шт.\n'
+    assert str(product) == "Телефон, 50000 руб. Остаток: 3 шт.\n"
 
 
 def test_category_str_representation():
     """Тест строкового представления Category"""
-    products = [
-        Product("Товар1", "Описание", 100, 2),
-        Product("Товар2", "Описание", 200, 3)
-    ]
+    products = [Product("Товар1", "Описание", 100, 2), Product("Товар2", "Описание", 200, 3)]
     category = Category("Категория", "Описание", products)
     assert str(category) == "Категория, количество продуктов: 5 шт."
 

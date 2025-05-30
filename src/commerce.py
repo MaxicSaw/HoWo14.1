@@ -13,9 +13,9 @@ class Product:
         """Создает новый товар или обновляет существующий"""
         if products:
             for prod in products:
-                if prod.name.lower() == product_data['name'].lower():
-                    prod.quantity += product_data['quantity']
-                    prod.price = max(prod.price, product_data['price'])
+                if prod.name.lower() == product_data["name"].lower():
+                    prod.quantity += product_data["quantity"]
+                    prod.price = max(prod.price, product_data["price"])
                     return prod
         return cls(**product_data)
 
@@ -31,7 +31,7 @@ class Product:
 
         if new_price < self.__price:
             confirm = input(f"Цена снижается с {self.__price} до {new_price}. Подтвердите (y/n): ")
-            if confirm.lower() != 'y':
+            if confirm.lower() != "y":
                 print("Изменение цены отменено")
                 return
 
@@ -41,8 +41,8 @@ class Product:
         return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт.\n"
 
     def __add__(self, other):
-        if not isinstance(other, Product):
-            raise TypeError("Можно складывать только объекты Product")
+        if type(self) is not type(other):
+            raise TypeError("Нельзя складывать продукты разных типов")
         return (self.price * self.quantity) + (other.price * other.quantity)
 
 
@@ -69,7 +69,7 @@ class Category:
     @property
     def products(self):
         """Возвращает строку со списком товаров"""
-        return ''.join(str(product) for product in self.__products)
+        return "".join(str(product) for product in self.__products)
 
     def __len__(self):
         return len(self.__products)
