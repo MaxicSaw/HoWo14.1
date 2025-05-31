@@ -1,23 +1,12 @@
-class Product:
-    total_products = 0
+from src.base_class import BaseProduct, BaseContainer, LoggingMixin
+from io import StringIO
+import sys
 
+
+class Product(BaseProduct, LoggingMixin):
     def __init__(self, name, description, price, quantity):
-        self.name = name
-        self.description = description
-        self.__price = price
-        self.quantity = quantity
-        Product.total_products += 1
-
-    @classmethod
-    def new_product(cls, product_data, products=None):
-        """Создает новый товар или обновляет существующий"""
-        if products:
-            for prod in products:
-                if prod.name.lower() == product_data["name"].lower():
-                    prod.quantity += product_data["quantity"]
-                    prod.price = max(prod.price, product_data["price"])
-                    return prod
-        return cls(**product_data)
+        super().__init__(name, description, price, quantity)
+        self.__price = price  # Используем двойное подчеркивание для приватности
 
     @property
     def price(self):
@@ -29,51 +18,61 @@ class Product:
             print("Цена не должна быть нулевая или отрицательная")
             return
 
-        if new_price < self.__price:
-            confirm = input(f"Цена снижается с {self.__price} до {new_price}. Подтвердите (y/n): ")
-            if confirm.lower() != "y":
+        if hasattr(self, '_Product__price') and new_price < self.__price:
+            confirmation = input("Подтвердите снижение цены (y/n): ")
+            if confirmation.lower() != 'y':
                 print("Изменение цены отменено")
                 return
 
         self.__price = new_price
 
+    @classmethod
+    def new_product(cls, product_data, products=None):
+        if products is None:
+            products = []
+
+        for prod in products:
+            if prod.name == product_data["name"]:
+                prod.price = max(prod.price, product_data["price"])
+                prod.quantity += product_data["quantity"]
+                return prod
+
+        return cls(
+            name=product_data["name"],
+            description=product_data["description"],
+            price=product_data["price"],
+            quantity=product_data["quantity"]
+        )
+
     def __str__(self):
         return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт.\n"
 
     def __add__(self, other):
-        if type(self) is not type(other):
-            raise TypeError("Нельзя складывать продукты разных типов")
+        if not isinstance(other, Product):
+            raise TypeError("Можно складывать только объекты Product")
         return (self.price * self.quantity) + (other.price * other.quantity)
 
 
-class Category:
-    category_count = 0
+class Category(BaseContainer, LoggingMixin):
     product_count = 0
 
     def __init__(self, name, description, products=None):
-        self.name = name
-        self.description = description
-        self.__products = []
-        if products:
-            for product in products:
-                self.add_product(product)
-        Category.category_count += 1
+        super().__init__(name, description)
+        self.__products = products if products else []
+
+    def __len__(self):
+        return len(self.__products)
+
+    @property
+    def products(self):
+        return "".join(str(product) for product in self.__products)
 
     def add_product(self, product):
-        """Добавляет товар в категорию"""
         if not isinstance(product, Product):
             raise TypeError("Можно добавлять только объекты класса Product")
         self.__products.append(product)
         Category.product_count += 1
 
-    @property
-    def products(self):
-        """Возвращает строку со списком товаров"""
-        return "".join(str(product) for product in self.__products)
-
-    def __len__(self):
-        return len(self.__products)
-
     def __str__(self):
-        total_quantity = sum(product.quantity for product in self.__products)
+        total_quantity = sum(p.quantity for p in self.__products)
         return f"{self.name}, количество продуктов: {total_quantity} шт."
