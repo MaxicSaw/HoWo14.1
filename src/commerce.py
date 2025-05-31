@@ -1,12 +1,10 @@
-from src.base_class import BaseProduct, BaseContainer, LoggingMixin
-from io import StringIO
-import sys
+from src.base_class import BaseProduct, BaseContainer, LoggingMixin, CreationInfoMixin
 
 
-class Product(BaseProduct, LoggingMixin):
+class Product(BaseProduct, LoggingMixin, CreationInfoMixin):
     def __init__(self, name, description, price, quantity):
         super().__init__(name, description, price, quantity)
-        self.__price = price  # Используем двойное подчеркивание для приватности
+        self.__price = price
 
     @property
     def price(self):
@@ -53,12 +51,14 @@ class Product(BaseProduct, LoggingMixin):
         return (self.price * self.quantity) + (other.price * other.quantity)
 
 
-class Category(BaseContainer, LoggingMixin):
+class Category(BaseContainer, LoggingMixin, CreationInfoMixin):
+    category_count = 0
     product_count = 0
 
     def __init__(self, name, description, products=None):
         super().__init__(name, description)
         self.__products = products if products else []
+        Category.category_count += 1
 
     def __len__(self):
         return len(self.__products)

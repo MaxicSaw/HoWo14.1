@@ -52,3 +52,21 @@ class LoggingMixin:
     def __repr__(self):
         attrs = ', '.join(f"{k}={v}" for k, v in self.__dict__.items())
         return f"{self.__class__.__name__}({attrs})"
+
+
+class CreationInfoMixin:
+    """Миксин для вывода информации о создании объектов"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._print_creation_info()
+
+    def _print_creation_info(self):
+        """Альтернативный подход с возвратом строки вместо печати"""
+        info = (
+            f"[CREATION INFO] Создан объект {self.__class__.__name__}\n"
+            f"Параметры: name={getattr(self, 'name', '')}\n"
+        )
+        import sys
+        sys.stdout.write(info)
+        sys.stdout.flush()
