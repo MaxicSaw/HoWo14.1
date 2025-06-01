@@ -1,14 +1,30 @@
 from src.base_class import BaseProduct, BaseContainer, LoggingMixin, CreationInfoMixin
+from src.class_error import ZeroQuantityError
 
 
-class Product(BaseProduct, LoggingMixin, CreationInfoMixin):
+class Product(LoggingMixin, BaseProduct, CreationInfoMixin):
+    total_products = 0
+
     def __init__(self, name, description, price, quantity):
+        if quantity == 0:
+            raise ValueError("Товар с нулевым количеством не может быть добавлен")
         super().__init__(name, description, price, quantity)
-        self.__price = price
+        Product.total_products += 1
+
+    @classmethod
+    def new_product(cls, product_data, products=None):
+        """Создает новый товар или обновляет существующий"""
+        if products:
+            for prod in products:
+                if prod.name.lower() == product_data["name"].lower():
+                    prod.quantity += product_data["quantity"]
+                    prod.price = max(prod.price, product_data["price"])
+                    return prod
+        return cls(**product_data)
 
     @property
     def price(self):
-        return self.__price
+        return self._price
 
     @price.setter
     def price(self, new_price):
@@ -16,63 +32,67 @@ class Product(BaseProduct, LoggingMixin, CreationInfoMixin):
             print("Цена не должна быть нулевая или отрицательная")
             return
 
-        if hasattr(self, '_Product__price') and new_price < self.__price:
-            confirmation = input("Подтвердите снижение цены (y/n): ")
-            if confirmation.lower() != 'y':
+        if new_price < self._price:
+            confirm = input(f"Цена снижается с {self._price} до {new_price}. Подтвердите (y/n): ")
+
+            if confirm.lower() != "y":
                 print("Изменение цены отменено")
                 return
-
-        self.__price = new_price
-
-    @classmethod
-    def new_product(cls, product_data, products=None):
-        if products is None:
-            products = []
-
-        for prod in products:
-            if prod.name == product_data["name"]:
-                prod.price = max(prod.price, product_data["price"])
-                prod.quantity += product_data["quantity"]
-                return prod
-
-        return cls(
-            name=product_data["name"],
-            description=product_data["description"],
-            price=product_data["price"],
-            quantity=product_data["quantity"]
-        )
+        self._price = new_price
 
     def __str__(self):
         return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт.\n"
 
     def __add__(self, other):
-        if not isinstance(other, Product):
-            raise TypeError("Можно складывать только объекты Product")
+        if type(self) is not type(other):
+            raise TypeError("Нельзя складывать продукты разных типов")
         return (self.price * self.quantity) + (other.price * other.quantity)
 
 
-class Category(BaseContainer, LoggingMixin, CreationInfoMixin):
+class Category(BaseContainer):
     category_count = 0
     product_count = 0
 
     def __init__(self, name, description, products=None):
-        super().__init__(name, description)
-        self.__products = products if products else []
+        self.name = name
+        self.description = description
+        self.__products = []
+        if products:
+            for product in products:
+                try:
+                    self.add_product(product)
+                except ZeroQuantityError as e:
+                    print(e)
+                finally:
+                    print("Обработка добавления товара завершена")
         Category.category_count += 1
+
+    def add_product(self, product):
+        """Добавляет товар в категорию"""
+        if not isinstance(product, Product):
+            raise TypeError("Можно добавлять только объекты класса Product")
+        if product.quantity <= 0:
+            raise ZeroQuantityError(f"Товар {product.name} имеет недопустимое количество: {product.quantity}")
+        self.__products.append(product)
+        Category.product_count += 1
+
+    @property
+    def products(self):
+        """Возвращает строку со списком товаров"""
+        return "".join(str(product) for product in self.__products)
 
     def __len__(self):
         return len(self.__products)
 
-    @property
-    def products(self):
-        return "".join(str(product) for product in self.__products)
-
-    def add_product(self, product):
-        if not isinstance(product, Product):
-            raise TypeError("Можно добавлять только объекты класса Product")
-        self.__products.append(product)
-        Category.product_count += 1
-
     def __str__(self):
-        total_quantity = sum(p.quantity for p in self.__products)
+        total_quantity = sum(product.quantity for product in self.__products)
         return f"{self.name}, количество продуктов: {total_quantity} шт."
+
+    def middle_price(self):
+        """Возвращает среднюю цену товаров в категории"""
+        try:
+            total = sum(product.price for product in self.__products)
+            return total / len(self.__products)
+        except ZeroDivisionError:
+            print("В категории нет товаров")
+            return 0

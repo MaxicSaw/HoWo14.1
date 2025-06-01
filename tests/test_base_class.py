@@ -1,8 +1,7 @@
 import pytest
 
-from src.base_class import BaseProduct, LoggingMixin, BaseContainer
+from src.base_class import BaseProduct, LoggingMixin, BaseContainer, CreationInfoMixin
 from src.commerce import Product, Category
-from src.order import Order
 
 
 def test_base_product_abc():
@@ -31,10 +30,12 @@ def test_logging_mixin(capsys):
     assert "Создан объект Test с параметрами:" in captured.out
     assert "x=10" in str(test)
 
+
 def test_base_container_abc():
     """Тест, что BaseContainer действительно абстрактный"""
     with pytest.raises(TypeError):
         BaseContainer("Test", "Test")
+
 
 def test_category_and_order_inheritance():
     """Тест наследования от BaseContainer"""

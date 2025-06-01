@@ -1,5 +1,7 @@
 from src.commerce import Product, Category
 import pytest
+from io import StringIO
+import sys
 
 
 def test_private_products_access():
@@ -145,3 +147,50 @@ def test_product_addition_with_invalid_type():
     p = Product("Товар", "Описание", 100, 1)
     with pytest.raises(TypeError):
         p + "не продукт"
+
+
+def test_zero_quantity_product_creation():
+    """Тест создания товара с нулевым количеством"""
+    with pytest.raises(ValueError) as excinfo:
+        Product("Тест", "Тест", 100, 0)
+    assert "Товар с нулевым количеством не может быть добавлен" in str(excinfo.value)
+
+
+def test_category_average_price():
+    """Тест расчета средней цены"""
+    # Случай с товарами
+    products = [Product("Товар1", "Описание", 100, 2), Product("Товар2", "Описание", 200, 3)]
+    cat = Category("Тест", "Тест", products)
+    assert cat.middle_price() == 150
+
+    # Случай без товаров
+    empty_cat = Category("Пустая", "Категория")
+    assert empty_cat.middle_price() == 0
+
+
+def test_zero_quantity_in_category():
+    """Тест добавления товара с нулевым количеством в категорию"""
+    # Создаем нормальный товар, затем меняем количество
+    product = Product("Тест", "Тест", 100, 1)
+    product.quantity = 0
+
+    captured_output = StringIO()
+    sys.stdout = captured_output
+
+    cat = Category("Тест", "Тест", [product])
+
+    output = captured_output.getvalue()
+    sys.stdout = sys.__stdout__
+
+    assert "Товар Тест имеет недопустимое количество: 0" in output
+    assert "Обработка добавления товара завершена" in output
+    assert len(cat.products.split('\n')) == 1  # Только заголовок пустой категории
+
+
+def test_successful_product_addition(capsys):
+    """Тест успешного добавления товара"""
+    product = Product("Тест", "Тест", 100, 1)
+    cat = Category("Тест", "Тест", [product])
+
+    captured = capsys.readouterr()
+    assert "Обработка добавления товара завершена" in captured.out
