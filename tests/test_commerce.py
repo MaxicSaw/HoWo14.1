@@ -1,0 +1,196 @@
+from src.commerce import Product, Category
+import pytest
+from io import StringIO
+import sys
+
+
+def test_private_products_access():
+    cat = Category("Тест", "Описание")
+    assert not hasattr(cat, "__products"), "Список продуктов должен быть приватным"
+
+
+def test_add_product_method():
+    cat = Category("Тест", "Описание")
+    product = Product("Товар", "Описание", 100, 5)
+
+    initial_count = Category.product_count
+    cat.add_product(product)
+
+    assert Category.product_count == initial_count + 1
+    assert len(cat.products.split("\n")) == 2  # 1 товар + пустая строка
+
+
+def test_products_getter_format():
+    cat = Category("Тест", "Описание")
+    product = Product("Телефон", "Смартфон", 50000, 3)
+    cat.add_product(product)
+
+    assert "Телефон, 50000 руб. Остаток: 3 шт.\n" in cat.products
+
+
+def test_new_product_classmethod():
+    product = Product.new_product({"name": "Ноутбук", "description": "Игровой", "price": 100000, "quantity": 5})
+
+    assert isinstance(product, Product)
+    assert product.name == "Ноутбук"
+    assert product.price == 100000
+
+
+def test_price_property():
+    product = Product("Тест", "Тест", 100, 1)
+
+    # Проверка геттера
+    assert product.price == 100
+
+    # Проверка сеттера с отрицательной ценой
+    product.price = -50
+    assert product.price == 100
+
+    # Проверка сеттера с валидной ценой
+    product.price = 150
+    assert product.price == 150
+
+
+def test_duplicate_product_handling():
+    products = [Product("Телефон", "Смартфон", 50000, 3)]
+    updated = Product.new_product({
+        'name': 'Телефон',
+        'description': 'Новый',
+        'price': 60000,
+        'quantity': 2
+    }, products)
+
+    assert updated.quantity == 5
+    assert updated.price == 60000
+
+
+def test_price_reduction_confirmation(monkeypatch):
+    """Тест подтверждения снижения цены через input"""
+    product = Product("Тест", "Тест", 100, 1)
+
+    # Тест 1: Пользователь подтверждает снижение
+    monkeypatch.setattr('builtins.input', lambda _: 'y')
+    product.price = 80
+    assert product.price == 80
+
+    # Тест 2: Пользователь отменяет снижение
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    product.price = 70
+    assert product.price == 80  # Цена не должна измениться
+
+    # Проверка вывода сообщения
+    from io import StringIO
+    import sys
+    captured_output = StringIO()
+    sys.stdout = captured_output
+
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    product.price = 70
+    assert "Изменение цены отменено" in captured_output.getvalue()
+
+    sys.stdout = sys.__stdout__
+
+
+def test_add_product_type_check():
+    """Тест проверки типа добавляемого продукта"""
+    cat = Category("Тест", "Тест")
+    product = Product("Тест", "Тест", 100, 1)
+
+    # Корректный продукт
+    cat.add_product(product)
+    assert len(cat.products) > 0
+
+    # Некорректный продукт
+    with pytest.raises(TypeError) as excinfo:
+        cat.add_product("не продукт")
+    assert "Можно добавлять только объекты класса Product" in str(excinfo.value)
+
+
+def test_category_len():
+    """Тест метода __len__ категории"""
+    cat = Category("Тест", "Тест")
+    assert len(cat) == 0
+
+    product = Product("Тест", "Тест", 100, 1)
+    cat.add_product(product)
+    assert len(cat) == 1
+
+    # Проверка после нескольких добавлений
+    for i in range(2, 5):
+        new_product = Product(f"Тест{i}", "Тест", 100 + i, i)
+        cat.add_product(new_product)
+        assert len(cat) == i
+
+
+def test_product_str_representation():
+    """Тест строкового представления Product"""
+    product = Product("Телефон", "Смартфон", 50000, 3)
+    assert str(product) == "Телефон, 50000 руб. Остаток: 3 шт.\n"
+
+
+def test_category_str_representation():
+    """Тест строкового представления Category"""
+    products = [Product("Товар1", "Описание", 100, 2), Product("Товар2", "Описание", 200, 3)]
+    category = Category("Категория", "Описание", products)
+    assert str(category) == "Категория, количество продуктов: 5 шт."
+
+
+def test_product_addition():
+    """Тест сложения продуктов"""
+    p1 = Product("Товар1", "Описание", 100, 2)  # 100*2 = 200
+    p2 = Product("Товар2", "Описание", 200, 3)  # 200*3 = 600
+    assert p1 + p2 == 800
+
+
+def test_product_addition_with_invalid_type():
+    """Тест сложения с неправильным типом"""
+    p = Product("Товар", "Описание", 100, 1)
+    with pytest.raises(TypeError):
+        p + "не продукт"
+
+
+def test_zero_quantity_product_creation():
+    """Тест создания товара с нулевым количеством"""
+    with pytest.raises(ValueError) as excinfo:
+        Product("Тест", "Тест", 100, 0)
+    assert "Товар с нулевым количеством не может быть добавлен" in str(excinfo.value)
+
+
+def test_category_average_price():
+    """Тест расчета средней цены"""
+    # Случай с товарами
+    products = [Product("Товар1", "Описание", 100, 2), Product("Товар2", "Описание", 200, 3)]
+    cat = Category("Тест", "Тест", products)
+    assert cat.middle_price() == 150
+
+    # Случай без товаров
+    empty_cat = Category("Пустая", "Категория")
+    assert empty_cat.middle_price() == 0
+
+
+def test_zero_quantity_in_category():
+    """Тест добавления товара с нулевым количеством в категорию"""
+    # Создаем нормальный товар, затем меняем количество
+    product = Product("Тест", "Тест", 100, 1)
+    product.quantity = 0
+
+    captured_output = StringIO()
+    sys.stdout = captured_output
+
+    cat = Category("Тест", "Тест", [product])
+
+    output = captured_output.getvalue()
+    sys.stdout = sys.__stdout__
+
+    assert "Товар Тест имеет недопустимое количество: 0" in output
+    assert "Обработка добавления товара завершена" in output
+    assert len(cat.products.split('\n')) == 1  # Только заголовок пустой категории
+
+
+def test_successful_product_addition(capsys):
+    """Тест успешного добавления товара"""
+    product = Product("Тест", "Тест", 100, 1)
+    cat = Category("Тест", "Тест", [product])
+
+    captured = capsys.readouterr()
+    assert "Обработка добавления товара завершена" in captured.out
